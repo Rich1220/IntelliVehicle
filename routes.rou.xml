@@ -8,7 +8,7 @@
     <route id="route_westbound" edges="westbound"/>
     
     <!-- Vehicle types -->
-    <vType id="ego_type" maxSpeed="30" accel="3.0" decel="4.5" sigma="0.0" length="4.5" minGap="2.0"/>
+    <vType id="ego_type" maxSpeed="20" accel="3.0" decel="4.5" sigma="0.0" length="4.5" minGap="2.0"/>
     <vType id="slow_type" maxSpeed="6" accel="1.0" decel="3.0" sigma="0.0" length="4.5" minGap="2.0"/>
     <vType id="oncoming_type" maxSpeed="20" accel="2.0" decel="4.0" sigma="0.0" length="4.5" minGap="2.0"/>
     
@@ -26,7 +26,7 @@
     </vehicle>
     
     <!-- Oncoming vehicles with staggered timing -->
-    <vehicle id="oncoming1" type="oncoming_type" route="route_westbound" depart="30" departPos="400" departSpeed="16">
+    <vehicle id="oncoming1" type="oncoming_type" route="route_westbound" depart="0" departPos="800" departSpeed="20">
         <param key="lcStrategic" value="0.0"/>
     </vehicle>
     

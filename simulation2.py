@@ -381,8 +381,8 @@ class SUMOOvertakingSimulation:
     <!-- Ego vehicle: fast, wants to overtake -->
     <vehicle id="ego" type="ego_type" route="route_eastbound" depart="0" departLane="0" departPos="100" departSpeed="20">
         
-        <param key="lcKeepRight" value="1.0"/>
-        <param key="lcAssertive" value="1.0"/>
+        <param key="lcKeepRight" value="0.0"/>
+        <param key="lcAssertive" value="0.0"/>
     </vehicle>
     
     <!-- Front vehicle: very slow, persistent -->
@@ -392,7 +392,7 @@ class SUMOOvertakingSimulation:
     </vehicle>
     
     <!-- Oncoming vehicles with staggered timing -->
-    <vehicle id="oncoming1" type="oncoming_type" route="route_westbound" depart="30" departPos="400" departSpeed="16">
+    <vehicle id="oncoming1" type="oncoming_type" route="route_westbound" depart="0" departPos="300" departSpeed="20">
         <param key="lcStrategic" value="0.0"/>
     </vehicle>
     
@@ -450,11 +450,7 @@ class SUMOOvertakingSimulation:
     
 
         # === Helper functions updated to lane‑local coordinates ===
-    def compute_return_position(self,
-                                conflict_lane_pos: float,
-                                vehicle_f_speed: float,
-                                ego_speed: float,
-                                TLC: float = 3.0) -> float:
+    def compute_return_position(self, conflict_lane_pos: float, vehicle_f_speed: float, ego_speed: float, TLC: float = 3.0) -> float:
         """Return S_switch (論文式 6) **沿車道方向的縱向座標**"""
         s_conflict_future = conflict_lane_pos + vehicle_f_speed * (TLC / 2.0)
         d_switch = ego_speed * (TLC / 2.0)
@@ -467,7 +463,10 @@ class SUMOOvertakingSimulation:
         V_expect = 18.0
 
         D_threshold = vehicle_f_state.lane_position - (2 * DLC + Dsafe)
-        return (ego_state.lane_position < D_threshold) and (vehicle_f_state.speed < V_expect)
+        condition = (ego_state.lane_position < D_threshold) and (vehicle_f_state.speed < V_expect)
+        if condition:
+            print("現在距離差多少觸發了超車意圖: ",vehicle_f_state.lane_position - ego_state.lane_position)
+        return condition
 
     def control_ego_vehicle(self, action: GameAction, ego_state: VehicleState, vehicle_f_state: Optional[VehicleState]):
         """Control ego vehicle with improved overtaking logic (with phase transition logs)"""
@@ -495,26 +494,32 @@ class SUMOOvertakingSimulation:
             elif self.current_phase == OvertakingPhase.OVERTAKING_PHASE_2:
                 if ego_state.lane_position >= self.return_position:
                     print(f"[DBG P2] ego_pos={ego_state.lane_position:.2f}, return_pos={self.return_position:.2f}")
-                    traci.vehicle.changeLane(self.ego_vehicle_id, 0, 3.0)
+                    traci.vehicle.changeLane(self.ego_vehicle_id, 0, 1.0)
                     self.current_phase = OvertakingPhase.OVERTAKING_PHASE_3
                     print(f"[PHASE] P2 → P3  (prepare to return)")
 
             elif self.current_phase == OvertakingPhase.OVERTAKING_PHASE_3:
-                ego_state = self.get_vehicle_state(self.ego_vehicle_id)  #  強制更新
+                ego_state = self.get_vehicle_state(self.ego_vehicle_id)
+                lane_id = ego_state.lane_id
                 lane_index = ego_state.lane_index
                 lane_pos = ego_state.lane_position
 
-                print(f"[DBG P3] phase_check, lane_index={lane_index}, ego_pos={lane_pos:.2f}, return_pos={self.return_position:.2f}")
+                # # 強制嘗試切回右道每一幀
+                # traci.vehicle.changeLane(self.ego_vehicle_id, 0, 18.0)
+                traci.vehicle.changeLane(self.ego_vehicle_id, 0, 1.0)
+                print(f"[DBG P3] phase_check, lane_index={lane_index}, lane_id={lane_id}, ego_pos={lane_pos:.2f}, return_pos={self.return_position:.2f}")
 
+                # 建議用 lane_id 判斷
                 if lane_index == 0:
-                    print("[DBG P3] lane_index == 0 判斷成立")
                     self.current_phase = OvertakingPhase.LANE_KEEPING
+                    traci.vehicle.setSpeed(self.ego_vehicle_id, 18.0)
                     print(f"[PHASE] P3 → LK  (return complete)")
+
                 else:
                     print("[DBG P3] 尚未切回原道")
-
-
-
+                    traci.vehicle.changeLane(self.ego_vehicle_id, 0, 1.0)
+                    
+                        
 
         else:
             traci.vehicle.changeLane(self.ego_vehicle_id, 0, 3.0)

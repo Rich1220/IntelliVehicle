@@ -1,4 +1,4 @@
-# 智慧車Sumo Implementation
-## 目前simulation2.py 為更新板
-## modified from simulation3.py
-Note: 我都晚上修改，你們可以也可以抓上去修，但記得說一下 不然等一下改到一樣的地方
+# How to run the code
+## Now the complete version is simulation4.py
+make sure you install the "Sumo" simulator and then you can run the python code 
+``` python python simulation4.py ```
